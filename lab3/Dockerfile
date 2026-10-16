@@ -1,6 +1,7 @@
 FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
+    HOME=/tmp \
     PYTHONUNBUFFERED=1
 
 WORKDIR /build
@@ -12,6 +13,7 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
+    HOME=/tmp \
     PYTHONUNBUFFERED=1 \
     PORT=8000 \
     LOG_LEVEL=INFO
