@@ -1,1 +1,5 @@
+.envlab3/__pycache__/
+
+# Environment files
 .env
+lab3/.env
