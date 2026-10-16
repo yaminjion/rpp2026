@@ -1,5 +1,6 @@
 
 import logging
+import os
 from datetime import date, datetime
 
 from flask import Flask, jsonify, request
@@ -33,6 +34,14 @@ class GatewayUnresolved(Exception):
 
 def create_app():
     app = Flask(__name__)
+
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(level=log_level)
+    app.logger.setLevel(log_level)
+
+    @app.get("/health")
+    def health():
+        return jsonify({"status": "healthy"}), 200
 
     # Все зависимости создаются один раз при запуске приложения.
     clock = SystemClock()
