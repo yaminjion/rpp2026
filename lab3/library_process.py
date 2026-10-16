@@ -16,7 +16,7 @@ from library_events import (
     ReturnReminderSent,
     AdministrationNotified,
 )
-
+from library_states import TransitionNotAllowed
 
 class LendingProcess:
     def __init__(
@@ -59,9 +59,7 @@ class LendingProcess:
         loan = self._loans.get(loan_id)
 
         if self.was_extended(loan):
-            raise DomainInvariantViolation(
-                "Книга уже продлевалась"
-            )
+            raise TransitionNotAllowed(loan.state, "extend")
 
         if self.book_has_queue(loan.book_id):
             raise DomainInvariantViolation(
