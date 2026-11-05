@@ -1,0 +1,104 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: flights_lab
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "12345"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./flights.csv:/docker-entrypoint-initdb.d/flights.csv:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flights_lab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  supplier1:
+    build: .
+    command: ["uvicorn", "supplier:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    environment:
+      SUPPLIER_ID: "1"
+      DELAY_MS: "300"
+      ERROR_PERCENT: "5"
+      SLOW_PERCENT: "0"
+      FLIGHTS_COUNT: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  supplier2:
+    build: .
+    command: ["uvicorn", "supplier:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    environment:
+      SUPPLIER_ID: "2"
+      DELAY_MS: "500"
+      ERROR_PERCENT: "5"
+      SLOW_PERCENT: "0"
+      FLIGHTS_COUNT: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  supplier3:
+    build: .
+    command: ["uvicorn", "supplier:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    environment:
+      SUPPLIER_ID: "3"
+      DELAY_MS: "800"
+      ERROR_PERCENT: "5"
+      SLOW_PERCENT: "10"
+      FLIGHTS_COUNT: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  search:
+    build: .
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      POSTGRES_DB: flights_lab
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "12345"
+      SUPPLIER_1_URL: http://supplier1:8000/flights
+      SUPPLIER_2_URL: http://supplier2:8000/flights
+      SUPPLIER_3_URL: http://supplier3:8000/flights
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      supplier1:
+        condition: service_healthy
+      supplier2:
+        condition: service_healthy
+      supplier3:
+        condition: service_healthy
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  postgres_data:
