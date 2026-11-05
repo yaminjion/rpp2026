@@ -6,10 +6,12 @@ from datetime import date
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 
 from database import create_db_engine, load_flights
 from routes import find_routes
 from supplier_client import load_supplier
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,11 +24,14 @@ async def lifespan(app: FastAPI):
         await app.state.http_client.aclose()
         await app.state.db_engine.dispose()
 
+
 app = FastAPI(lifespan=lifespan)
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
 
 @app.get("/search")
 async def search(
@@ -39,7 +44,7 @@ async def search(
     engine = request.app.state.db_engine
     client = request.app.state.http_client
 
-    async def supplier_request(number):
+    async def supplier_request(number: int):
         url = os.getenv(
             f"SUPPLIER_{number}_URL",
             f"http://127.0.0.1:800{number}/flights",
@@ -74,11 +79,14 @@ async def search(
             detail="Поиск временно недоступен",
         )
 
-    routes = find_routes(flights, origin, destination)
+    routes = await run_in_threadpool(
+        find_routes, flights, origin, destination
+    )
 
     return {
         "routes": routes,
         "unavailable_suppliers": unavailable_suppliers,
-        "processing_time_seconds": round(time.perf_counter() - start, 3),
+        "processing_time_seconds": round(
+            time.perf_counter() - start, 3
+        ),
     }
-

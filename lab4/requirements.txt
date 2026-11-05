@@ -1,10 +1,6 @@
 fastapi
 uvicorn[standard]
-SQLAlchemy
 SQLAlchemy[asyncio]
-psycopg[binary]
-requests
-py-spy
-httpx
 asyncpg
-psycopg2-binary
+httpx
+py-spy

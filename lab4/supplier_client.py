@@ -1,6 +1,8 @@
 import asyncio
 from datetime import date
+
 import httpx
+
 
 async def load_supplier(
     client: httpx.AsyncClient,
